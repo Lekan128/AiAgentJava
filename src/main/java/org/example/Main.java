@@ -3,6 +3,7 @@ package org.example;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.ai.Gemini;
+import org.example.method.MethodExecutionResult;
 import org.example.method.caller.ReflectionCaller;
 import org.example.method.caller.ReflectionInvocableMethod;
 
@@ -60,10 +61,11 @@ public class Main {
                 objectMapper.readValue(s.replace("```json", "")
                         .replace("```", ""), new TypeReference<>(){} );
 
-        List<Object> returnedObjects = new ArrayList<>();
+        List<MethodExecutionResult> returnedResults = new ArrayList<>();
         try{
             for (ReflectionInvocableMethod method : list ){
-                returnedObjects.add(ReflectionCaller.invokeMethod(method));
+                Object response = ReflectionCaller.invokeMethod(method);
+                returnedResults.add(new MethodExecutionResult(method, response));
             }
         } catch (Exception e){
             throw new RuntimeException(e);
@@ -75,7 +77,7 @@ public class Main {
         System.out.println("###############");
         System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(list));
         System.out.println("###############");
-        System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(returnedObjects));
+        System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(returnedResults));
     }
 String listOfSearchResult = """
             [ {
