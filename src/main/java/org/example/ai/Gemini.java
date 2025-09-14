@@ -8,9 +8,11 @@ import com.google.genai.types.GenerateContentResponse;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.example.Response;
 import org.example.Util;
+import org.example.method.MethodExecutionResult;
 import org.example.method.caller.ReflectionInvocableMethod;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Gemini {
@@ -260,32 +262,64 @@ public class Gemini {
 
     public static void main(String[] args) throws JsonProcessingException {
         String aiPersonality = "A product describer, that give description of products to be sold online";
+        String userQuery = "Janga wooden toys";
 
 
-        String completePrompt = String.format("""
-                [SYSTEM INSTRUCTIONS]
-                You are "%s".
-                Your sole purpose is to analyze a user's query and use the information provided to generate a JSON in the output format provided for you.
-                            
-                [RULES]
-                1. Analyze the Query: Carefully examine the user's query to understand their intent.
-                2. Use Reply/Given objects from prev chat: Use the reply/given objects to give the most appropriate response to the user's query.
-                3. Format Output: Your output MUST be a valid JSON in the form of the output format provided.
-                4. Unhelpful Reply/Given objects from prev chat: If the reply/given objects are unhelpful, give the json formatted response in the best of you ability.
-                5. No Extra Text: Do not provide any explanation or text outside of the final JSON array.
-                            
-                [REPLY/GIVEN OBJECTS FROM PREV CHAT]
-                %s
-                            
-                [EXAMPLE]
-                //... depends on the reply I've not decided on how this should look           
-                            
-                [TASK]
-                User Query: "<<<%s>>>"
-                Your Output: [%s]
-                """, aiPersonality, userQuery, outputFormat);
+        String promptForFinalResult = getPromptForFinalResult(aiPersonality, userQuery, new ArrayList<>());
+        System.out.println(promptForFinalResult);
     }
 
+    public static String getPromptForFinalResult(String aiPersonality, String userQuery, List<MethodExecutionResult> executionResults) throws JsonProcessingException {
+        // Assuming these are your variables
+//        String aiPersonality = "You are a product describer, you give description of products to be sold online";
+//        String userQuery = "Samsung galaxy A53";
+        String toolResultsJson = new ObjectMapper().writeValueAsString(executionResults); // The JSON from your list of ToolExecutionResult
+        String finalOutputFormat = Util.convertToString(Response.class); // e.g., {"productName": "...", "description": "..."}
+        String chatHistoryJson = "";
+
+        String synthesisPrompt = String.format("""
+                [SYSTEM_INSTRUCTIONS]
+                You are a %s.
+                Your purpose is to synthesize a final answer by analyzing the user's query, the conversation history, and the results from any tools that were called.
+                
+                [RULES]
+                1. Primary Goal: Your main goal is to answer the user's latest query in the `[TASK]` section.
+                2. Use All Context: Use the `[CHAT_HISTORY]` to understand the flow of the conversation and the `[TOOL_RESULTS]` for factual data.
+                3. Synthesize: Combine all relevant information to create a comprehensive, helpful response.
+                4. Handle Missing Info: If the `[CHAT_HISTORY]` or `[TOOL_RESULTS]` are empty, unhelpful, or don't contain enough information, state that you were unable to find the details in the appropriate fields of the `[FINAL_OUTPUT_FORMAT]`, and make the other fields empty. Do not invent information.
+                5. Strictly Adhere to Format: Your final output MUST be a single, valid JSON object that conforms to the `[FINAL_OUTPUT_FORMAT]`. Provide no other text.
+                
+                [CHAT_HISTORY]
+                %s
+                
+                [TOOL_RESULTS]
+                %s
+                
+                [EXAMPLE]
+                1. User Query: "Tell me about the Google Pixel 8"
+                    Tool Results: [{"request":{"className":"org.example.Search","methodName":"getProductSpecs","methodArguments":[{"type":"java.lang.String","value":"Google Pixel 8"}]},"response":{"cpu":"Tensor G3","screen":"6.2-inch Actua"}}]
+                    Your Output:{"productName":"Google Pixel 8","description":"The Google Pixel 8 is powered by the Tensor G3 chip and features a 6.2-inch Actua display.", "toolsUsed" : [ {"methodName":"getProductSpecs"} ]}
+                2. User Query: "What is AI"
+                    Tool Results: [{"request":{"className":"org.example.google.Search","methodName":"search","methodArguments":[{"type":"java.lang.String","value":"Summary of AI"}]},"response":"AI (Artificial Intelligence) is the development of computer systems capable of performing tasks that typically require human intelligence."}]
+                    Your Output:{"summary":"AI is the development of computer systems performing human-like tasks","researchAbout":"AI (Artificial Intelligence)"}
+                3. User Query: "SoPure Cream"
+                    Tool Results: [{"request":{"className":"org.example.ProductService","methodName":"getProduct","methodArguments":[{"type":"java.lang.String","value":"Mona Lisa"}]},"response":{"name":"Mona Lisa","price":"1200", "type": "replica"}}]
+                    Your Output:{"productName":"Unable to find the details.","description":"Unable to find the details.", "toolsUsed" : [ ]}
+                 
+                [TASK]
+                User Query: "<<<%s>>>"
+                Final Output Format: %s
+                Your Output:
+                """, aiPersonality,
+                chatHistoryJson, // A JSON representation of the conversation so far
+                toolResultsJson, // The JSON from your ToolExecutionResult
+                userQuery, // The user's most recent message
+                finalOutputFormat
+        );
+
+        return synthesisPrompt;
+
+    }
     public static void llm() throws JsonProcessingException {
         // Your original variables
         String userQuery = "Nivea Men dry impact anti-perspirant";

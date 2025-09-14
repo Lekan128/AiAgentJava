@@ -6,24 +6,12 @@ import java.util.List;
 import java.util.Map;
 
 public class ReflectionInvocableMethod {
-
-    @JsonProperty
-    private String description;
-
     @JsonProperty
     private String className;
     @JsonProperty
     private String methodName;
     @JsonProperty
     private List<Map<String, Object>> methodArguments;
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
 
     public String getClassName() {
         return className;
