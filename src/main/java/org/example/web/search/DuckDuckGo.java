@@ -12,8 +12,7 @@ import java.util.Map;
 
 public class DuckDuckGo {
 
-    @AiToolMethod("Search the web for information")
-    public static String search(@ArgDesc("The search parameter") String searchParam)
+    public static String search(String searchParam)
             throws IOException, InterruptedException
     {
         String url = String.format("https://api.duckduckgo.com/?q=%s&format=json&pretty=1&no_html=1&skip_disambig=1", searchParam);

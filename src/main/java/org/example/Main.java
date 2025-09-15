@@ -28,12 +28,14 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        String userQuery = "Jenga wooden toy";
+        String aiPersona = "A product describer, that give description of products to be sold online";
         List<ReflectionInvocableMethod> invocableMethodList = Gemini.callWithToolsForPlan(
-                "SooPure Lait hydratant moisturising lotion",
-                "A product describer, that give description of products to be sold online"
+                userQuery,
+                aiPersona
         );
 
-        String s = """
+        /*String s = """
                 ```json
                 [
                   {
@@ -48,22 +50,22 @@ public class Main {
                   }
                 ]
                 ```
-                """;
+                """;*/
 
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        objectMapper.setVisibility(
-                com.fasterxml.jackson.annotation.PropertyAccessor.FIELD,
-                com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY
-        );
-
-        List<ReflectionInvocableMethod> list =
-                objectMapper.readValue(s.replace("```json", "")
-                        .replace("```", ""), new TypeReference<>(){} );
+//        ObjectMapper objectMapper = new ObjectMapper();
+//
+//        objectMapper.setVisibility(
+//                com.fasterxml.jackson.annotation.PropertyAccessor.FIELD,
+//                com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY
+//        );
+//
+//        List<ReflectionInvocableMethod> list =
+//                objectMapper.readValue(s.replace("```json", "")
+//                        .replace("```", ""), new TypeReference<>(){} );
 
         List<MethodExecutionResult> returnedResults = new ArrayList<>();
         try{
-            for (ReflectionInvocableMethod method : list ){
+            for (ReflectionInvocableMethod method : invocableMethodList ){
                 Object response = ReflectionCaller.invokeMethod(method);
                 returnedResults.add(new MethodExecutionResult(method, response));
             }
@@ -71,11 +73,11 @@ public class Main {
             throw new RuntimeException(e);
         }
 
-
+        Response response = Gemini.callForFinalResponse(aiPersona, userQuery, returnedResults);
 
 
         System.out.println("###############");
-        System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(list));
+        System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(response));
         System.out.println("###############");
         System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(returnedResults));
     }
