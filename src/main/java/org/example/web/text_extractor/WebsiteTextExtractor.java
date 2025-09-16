@@ -34,7 +34,8 @@ public class WebsiteTextExtractor {
         public String getContent() { return content; }
     }
 
-    public static ExtractedPageSummary extractSummary(String url) throws IOException {
+    //.
+    public static ExtractedPageSummary extractPageHtmlAndSummary(String url) throws IOException {
         // 1. Fetch HTML
         String html = Jsoup.connect(url)
                 .userAgent("Mozilla/5.0") // Pretend to be a browser
@@ -54,7 +55,7 @@ public class WebsiteTextExtractor {
         return urls.parallelStream()
                 .map(url -> {
                     try {
-                        return extractSummary(url);
+                        return extractPageHtmlAndSummary(url);
                     } catch (IOException e) {
                         System.err.println("Failed to extract from " + url + ": " + e.getMessage());
                         return null;
@@ -69,7 +70,7 @@ public class WebsiteTextExtractor {
                 .map(response -> {
                     String url = response.getLink();
                     try {
-                        return extractSummary(url);
+                        return extractPageHtmlAndSummary(url);
                     } catch (IOException e) {
                         System.err.println("Failed to extract from " + url + ": " + e.getMessage());
                         return new ExtractedPageSummary(url, response.getTitle(), response.getLink());
@@ -81,7 +82,7 @@ public class WebsiteTextExtractor {
     public static void main(String[] args) throws Exception {
         String url = "https://en.wikipedia.org/wiki/Artificial_intelligence";
 
-        ExtractedPageSummary page = extractSummary(url);
+        ExtractedPageSummary page = extractPageHtmlAndSummary(url);
 
         System.out.println("Title: " + page.getTitle());
         System.out.println("\nurl:\n" + page.getUrl());

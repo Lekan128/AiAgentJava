@@ -25,9 +25,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Google {
-    //cx= Search Engine ID = REMOVED
-    //apiKey = REMOVED
-
     public static List<GoogleSearchResponse> search(String searchParam)
             throws IOException, InterruptedException
     {
@@ -60,7 +57,7 @@ public class Google {
         JsonNode jsonNodeItems = fullSchema.get("items");
         if (jsonNodeItems == null) return null;
         List<GoogleSearchResponse> googleSearchResponses = mapper.readValue(jsonNodeItems.traverse(), new TypeReference<>(){});
-        Set<String> links = googleSearchResponses.stream().map(GoogleSearchResponse::getLink).collect(Collectors.toSet());
+//        Set<String> links = googleSearchResponses.stream().map(GoogleSearchResponse::getLink).collect(Collectors.toSet());
         return googleSearchResponses;
     }
 
