@@ -40,7 +40,10 @@ public class Gemini {
                     com.fasterxml.jackson.annotation.PropertyAccessor.FIELD,
                     com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY
             );
-            response = objectMapper.readValue(generateContentResponse.text().replace("```json", "").replace("```", ""), new TypeReference<>() {
+            response = objectMapper.readValue(generateContentResponse.text()
+                    .replace("```json", "")
+                    .replace("```", ""),
+                    new TypeReference<>() {
             });
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Unable to convert Gemini generateContentResponse to POJO\n"+e);

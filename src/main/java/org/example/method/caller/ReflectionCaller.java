@@ -1,11 +1,17 @@
 package org.example.method.caller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.ObjectMapperSingleton;
 import org.example.Util;
+import org.example.method.MethodExecutionResult;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -52,11 +58,12 @@ public class ReflectionCaller {
         return invokeMethod(request);
     }
 
-    public static Object invokeMethod(ReflectionInvocableMethod request) throws Exception {
+    public static Object invokeMethod(ReflectionInvocableMethod request) throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         Object result = ReflectionCaller.callMethod(
                 request.getClassName(),
                 request.getMethodName(),
-                request.getMethodArguments()
+                request.getMethodArguments(),
+                null
         );
 
         System.out.println("Result = " + result);
@@ -83,7 +90,8 @@ public class ReflectionCaller {
     public static Object callMethod(
             String className,
             String methodName,
-            List<Map<String, Object>> args
+            List<MethodArgument> args,
+            Map<String,Object> methodArgumentPlaceHolders
     ) throws NoSuchMethodException, ClassNotFoundException, InvocationTargetException, InstantiationException, IllegalAccessException {
         Class<?> clazz = Class.forName(className);
         Object instance = null;
@@ -92,13 +100,26 @@ public class ReflectionCaller {
         Class<?>[] paramTypes = new Class<?>[args.size()];
         Object[] paramValues = new Object[args.size()];
 
+//        for (int i = 0; i < args.size(); i++) {
+//            String typeName = (String) args.get(i).get("type");
+//            Object value = args.get(i).get("value");
+//
+//            Class<?> paramType = getClassFromName(typeName);
+//            paramTypes[i] = paramType;
+//            paramValues[i] = convertValue(value, paramType);
+//        }
         for (int i = 0; i < args.size(); i++) {
-            String typeName = (String) args.get(i).get("type");
-            Object value = args.get(i).get("value");
+            String typeName = args.get(i).getType();
+            Object rawValue = args.get(i).getValue();
+
+            // Resolve placeholder if present
+            Object resolvedValue =
+                    methodArgumentPlaceHolders == null ? rawValue : resolvePlaceholders(rawValue, methodArgumentPlaceHolders);
 
             Class<?> paramType = getClassFromName(typeName);
             paramTypes[i] = paramType;
-            paramValues[i] = convertValue(value, paramType);
+            paramValues[i] = convertValue(resolvedValue, paramType);
+
         }
 
         Method method = clazz.getMethod(methodName, paramTypes);
@@ -111,6 +132,39 @@ public class ReflectionCaller {
         return method.invoke(instance, paramValues);
     }
 
+    public static List<MethodExecutionResult> executePipelineFromJsonList(String jsonList) throws JsonProcessingException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        ObjectMapper objectMapper = ObjectMapperSingleton.getObjectMapper();
+        List<ReflectionInvocableMethod> reflectionInvocableMethods = objectMapper.readValue(jsonList, new TypeReference<List<ReflectionInvocableMethod>>() {});
+        return executePipeline(reflectionInvocableMethods);
+    }
+
+    public static List<MethodExecutionResult> executePipeline(List<ReflectionInvocableMethod> requests) throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        Map<String, Object> context = new HashMap<>();
+        List<MethodExecutionResult> results = new ArrayList<>();
+
+        for (ReflectionInvocableMethod req : requests) {
+            Object result = callMethodWithContext(req, context);
+            if (req.getReturnObjectKey() != null) {
+                context.put(req.getReturnObjectKey(), result);
+            }
+            System.out.println(req);
+            System.out.println(result);
+            System.out.println("_______");
+            results.add(new MethodExecutionResult(req, result));
+        }
+        return results;
+    }
+
+    //context is the possible result substitution
+    private static Object callMethodWithContext(ReflectionInvocableMethod request, Map<String, Object> context) throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        return callMethod(
+                request.getClassName(),
+                request.getMethodName(),
+                request.getMethodArguments(),
+                context
+        );
+    }
+
     private static Class<?> getClassFromName(String typeName) throws ClassNotFoundException {
         switch (typeName) {
             case "int": return int.class;
@@ -120,7 +174,16 @@ public class ReflectionCaller {
             default: return Class.forName(typeName);
         }
     }
-
+    private static Object resolvePlaceholders(Object rawValue, Map<String, Object> context) {
+        if (rawValue instanceof String && ((String) rawValue).startsWith("{{arg")) {
+            Object resolved = context.get(rawValue);
+            if (resolved == null) {
+                throw new IllegalArgumentException("Unresolved placeholder: " + rawValue);
+            }
+            return resolved;
+        }
+        return rawValue;
+    }
     private static Object convertValue(Object value, Class<?> targetType) {
         if (value == null) return null;
         if (targetType == int.class || targetType == Integer.class) {
