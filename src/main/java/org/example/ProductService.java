@@ -2,9 +2,11 @@ package org.example;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.method.AiToolMethod;
 import org.example.method.MethodExecutionResult;
 import org.example.method.caller.ReflectionCaller;
 import org.example.method.caller.ReflectionInvocableMethod;
+import org.example.method.description.ArgDesc;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
@@ -18,8 +20,14 @@ public class ProductService {
         return product.getId();
     }
 
-    public String findProductName(String id){
+    @AiToolMethod("Get product name with product Id")
+    public String findProductName(@ArgDesc("Product Id") String id){
         return "ProductName+"+id;
+    }
+
+    @AiToolMethod("Get the name of a user's top product with user id")
+    public String getUsersTopProductName(@ArgDesc("User id") String id){
+        return "Samsung galaxy s25 Ultra";
     }
 
     public static class SearchFilter{

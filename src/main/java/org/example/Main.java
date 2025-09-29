@@ -27,60 +27,94 @@ public class Main {
     * */
 
 
-    public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        String userQuery = "SooPure Lait hydratant moisturising lotion";
+    public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
+        String userQuery = "Describe my top product";
+//        String userQuery = "SooPure Lait hydratant moisturising lotion";
         String aiPersona = "A product describer, that give description of products to be sold online";
         List<ReflectionInvocableMethod> invocableMethodList = Gemini.callWithToolsForPlan(
                 userQuery,
                 aiPersona
         );
 
-        /*String s = """
-                ```json
-                [
-                  {
-                    "className": "org.example.web.search.DuckDuckGo",
-                    "methodName": "search",
-                    "methodArguments": [
-                      {
-                        "type": "java.lang.String",
-                        "value": "SooPure Lait hydratant moisturising lotion"
-                      }
-                    ]
-                  }
-                ]
-                ```
-                """;*/
+        List<MethodExecutionResult> methodExecutionResults = ReflectionCaller.executePipeline(invocableMethodList);
+        System.out.println(ObjectMapperSingleton.getObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(methodExecutionResults));
 
-//        ObjectMapper objectMapper = new ObjectMapper();
-//
-//        objectMapper.setVisibility(
-//                com.fasterxml.jackson.annotation.PropertyAccessor.FIELD,
-//                com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY
-//        );
-//
-//        List<ReflectionInvocableMethod> list =
-//                objectMapper.readValue(s.replace("```json", "")
-//                        .replace("```", ""), new TypeReference<>(){} );
 
-        List<MethodExecutionResult> returnedResults = new ArrayList<>();
-        try{
-            for (ReflectionInvocableMethod method : invocableMethodList ){
-                Object response = ReflectionCaller.invokeMethod(method);
-                returnedResults.add(new MethodExecutionResult(method, response));
-            }
-        } catch (Exception e){
-            throw new RuntimeException(e);
-        }
-
-        Response response = Gemini.callForFinalResponse(aiPersona, userQuery, returnedResults);
+        Response response = Gemini.callForFinalResponse(aiPersona, userQuery, methodExecutionResults);
 
 
         System.out.println("###############");
-        System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(response));
+        System.out.println(ObjectMapperSingleton.getObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(response));
         System.out.println("###############");
-        System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(returnedResults));
+        System.out.println(ObjectMapperSingleton.getObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(methodExecutionResults));
     }
+
+    String listOfInvocableMethodCalls = """
+            [ {
+              "className" : "org.example.MyService",
+              "methodName" : "getCurrentUserId",
+              "methodArguments" : [ ],
+              "returnObjectKey" : "{{user_id}}"
+            }, {
+              "className" : "org.example.ProductService",
+              "methodName" : "getUsersTopProductName",
+              "methodArguments" : [ {
+                "type" : "java.lang.String",
+                "value" : "{{user_id}}"
+              } ],
+              "returnObjectKey" : "{{top_product_name}}"
+            }, {
+              "className" : "org.example.web.WebSearchProcessor",
+              "methodName" : "search",
+              "methodArguments" : [ {
+                "type" : "java.lang.String",
+                "value" : "{{top_product_name}}"
+              } ],
+              "returnObjectKey" : "{{product_description}}"
+            } ]
+            """;
+    String listOfMethodExecutionResult = """
+            [ {
+              "request" : {
+                "className" : "org.example.MyService",
+                "methodName" : "getCurrentUserId",
+                "methodArguments" : [ ],
+                "returnObjectKey" : "{{user_id}}"
+              },
+              "response" : "User_@12"
+            }, {
+              "request" : {
+                "className" : "org.example.ProductService",
+                "methodName" : "getUsersTopProductName",
+                "methodArguments" : [ {
+                  "type" : "java.lang.String",
+                  "value" : "{{user_id}}"
+                } ],
+                "returnObjectKey" : "{{top_product_name}}"
+              },
+              "response" : "Samsung galaxy s25 Ultra"
+            }, {
+              "request" : {
+                "className" : "org.example.web.WebSearchProcessor",
+                "methodName" : "search",
+                "methodArguments" : [ {
+                  "type" : "java.lang.String",
+                  "value" : "{{top_product_name}}"
+                } ],
+                "returnObjectKey" : "{{product_description}}"
+              },
+              "response" : "The Samsung Galaxy S25 Ultra boasts a tough titanium frame and Gorilla® Armor 2 display glass for enhanced durability, with an IP68 rating for water and dust resistance, and integrated Galaxy AI features"
+            } ]
+            """;
+
+    String response = """
+            {
+              "description" : "Samsung Galaxy S25 Ultra features a titanium frame, Gorilla Armor 2 display, IP68 rating, and Galaxy AI..",
+              "toolsUsed" : [ "getCurrentUserId", "getUsersTopProductName", "search" ],
+              "productName" : "Samsung galaxy s25 Ultra"
+            }
+            """;
+
 String listOfSearchResult = """
             [ {
                       "url" : "https://www.jumia.com.ng/generic-minimie-chinchin-snack-jar-393586579.html",

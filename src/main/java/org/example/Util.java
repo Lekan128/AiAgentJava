@@ -41,7 +41,14 @@ public class Util {
             String fieldName = field.getKey();
             JsonNode fieldDef = field.getValue();
 
-            String type = fieldDef.get("type").asText();
+            String type;
+            if (fieldDef.has("type")) {
+                type = fieldDef.get("type").asText();
+            } else if (fieldDef.isObject() && fieldDef.size() == 0) {
+                type = "Any"; // explicitly empty {} // represents unconstrained schema, maps to Java Object
+            } else {
+                type = "Any"; // fallback safety
+            }
 
             switch (type) {
                 case "object":
