@@ -160,26 +160,44 @@ public class Gemini {
                 [RULES]
                 1. Primary Goal: Your main goal is to answer the user's latest query in the `[TASK]` section.
                 2. Use All Context: Use the `[CHAT_HISTORY]` to understand the flow of the conversation and the `[TOOL_RESULTS]` for factual data.
-                3. Synthesize: Combine all relevant information to create a comprehensive, helpful response.
+                3. Synthesize: The tool results may represent a sequence of steps. Analyse the entire chain to understand the data flow. Focus on and combine the most relevant tool responses to construct your answer.
                 4. Handle Missing Info: If the `[CHAT_HISTORY]` or `[TOOL_RESULTS]` are empty, unhelpful, or don't contain enough information, state that you were unable to find the details in the appropriate fields of the `[FINAL_OUTPUT_FORMAT]`, and make the other fields empty. Do not invent information.
                 5. Strictly Adhere to Format: Your final output MUST be a single, valid JSON object that conforms to the `[FINAL_OUTPUT_FORMAT]`. Provide no other text.
-                
+                                
                 [CHAT_HISTORY]
                 %s
-                
+                                
                 [TOOL_RESULTS]
                 %s
-                
+                                
                 [EXAMPLE]
-                1. User Query: "Tell me about the Google Pixel 8"
-                    Tool Results: [{"request":{"className":"org.example.Search","methodName":"getProductSpecs","methodArguments":[{"type":"java.lang.String","value":"Google Pixel 8"}]},"response":{"cpu":"Tensor G3","screen":"6.2-inch Actua"}}]
-                    Your Output:{"productName":"Google Pixel 8","description":"The Google Pixel 8 is powered by the Tensor G3 chip and features a 6.2-inch Actua display.", "toolsUsed" : [ {"methodName":"getProductSpecs"} ]}
-                2. User Query: "What is AI"
-                    Tool Results: [{"request":{"className":"org.example.google.Search","methodName":"search","methodArguments":[{"type":"java.lang.String","value":"Summary of AI"}]},"response":"AI (Artificial Intelligence) is the development of computer systems capable of performing tasks that typically require human intelligence."}]
-                    Your Output:{"summary":"AI is the development of computer systems performing human-like tasks","researchAbout":"AI (Artificial Intelligence)"}
-                3. User Query: "SoPure Cream"
-                    Tool Results: [{"request":{"className":"org.example.ProductService","methodName":"getProduct","methodArguments":[{"type":"java.lang.String","value":"Mona Lisa"}]},"response":{"name":"Mona Lisa","price":"1200", "type": "replica"}}]
-                    Your Output:{"productName":"Unable to find the details.","description":"Unable to find the details.", "toolsUsed" : [ ]}
+                // Example 1: A multi-step chained query
+                User Query: "Describe my top product"
+                Tool Results: [ {
+                    "request" : {"className" : "org.example.MyService","methodName" : "getCurrentUserId","methodArguments" : [ ],"returnObjectKey" : "{{user_id}}"},
+                    "response" : "User_@12"
+                }, {
+                    "request" : {"className" : "org.example.ProductService","methodName" : "getUsersTopProductName","methodArguments" : [ {"type" : "java.lang.String","value" : "{{user_id}}"} ],"returnObjectKey" : "{{top_product_name}}"},
+                    "response" : "Samsung galaxy s25 Ultra"
+                }, {
+                    "request" : {"className" : "org.example.web.WebSearchProcessor","methodName" : "search","methodArguments" : [ {"type" : "java.lang.String","value" : "{{top_product_name}}"} ]},
+                    "response" : "The Samsung Galaxy S25 Ultra boasts a tough titanium frame and Gorilla® Armor 2 display glass for enhanced durability, with an IP68 rating for water and dust resistance, and integrated Galaxy AI features"
+                } ]
+                Your Output: {
+                    "productName" : "Samsung galaxy s25 Ultra",
+                    "description" : "The Samsung Galaxy S25 Ultra features a tough titanium frame, Gorilla® Armor 2 display glass for enhanced durability, an IP68 rating for water and dust resistance, and integrated Galaxy AI features.",
+                    "toolsUsed" : [ "getCurrentUserId", "getUsersTopProductName", "search" ]
+                }
+                
+                // Example 2: A single-step query with helpful results
+                User Query: "What is AI"
+                Tool Results: [{"request":{"className":"org.example.google.Search","methodName":"search","methodArguments":[{"type":"java.lang.String","value":"Summary of AI"}]},"response":"AI (Artificial Intelligence) is the development of computer systems capable of performing tasks that typically require human intelligence."}]
+                Your Output:{"summary":"AI is the development of computer systems performing human-like tasks","researchAbout":"AI (Artificial Intelligence)"}
+                
+                // Example 3: A single-step query with unhelpful results
+                User Query: "SoPure Cream"
+                Tool Results: [{"request":{"className":"org.example.ProductService","methodName":"findProduct","methodArguments":[{"type":"java.lang.String","value":"Mona Lisa"}],"returnObjectKey" : "{{product_details}}"},"response":{"name":"Mona Lisa","price":"1200", "type": "replica"}}]
+                Your Output:{"productName":"Unable to find the details.","description":"Unable to find the details.", "toolsUsed" : [ ]}
                  
                 [TASK]
                 User Query: "<<<%s>>>"
