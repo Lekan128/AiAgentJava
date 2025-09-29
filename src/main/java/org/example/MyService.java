@@ -13,5 +13,10 @@ public class MyService {
     public String greetUser(@ArgDesc("user's name") String name, @ArgDesc("user's age and level") AgeAndLevel a){
         return "Hi, " + name + " you are " + a.age + " years old. " + " level " + a.level;
     }
+
+    @AiToolMethod("Get the current user's id. Returns user id")
+    public String getCurrentUserId(){
+        return "User_@12";
+    }
 }
 

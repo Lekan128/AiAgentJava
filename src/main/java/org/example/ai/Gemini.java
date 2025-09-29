@@ -53,56 +53,80 @@ public class Gemini {
 
     private static String getCompletePromptForPlan(String userQuery, String aiPersonality) {
         String toolsJson = AiUtil.getAiToolsAsJson("org.example");
-        String outputFormat = null;
-        try {
-            outputFormat = Util.convertToString(ReflectionInvocableMethod.class);
-
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+//        String outputFormat = null;
+//        try {
+//            outputFormat = Util.convertToString(ReflectionInvocableMethod.class);
+//
+//        } catch (JsonProcessingException e) {
+//            throw new RuntimeException(e);
+//        }
 
 
         String completePrompt = String.format("""
                 [SYSTEM INSTRUCTIONS]
-                You are an expert AI assistant that functions as a tool-use planner helping a "%s".
+                You are an expert AI assistant that functions as a tool-use planner".
                 Your sole purpose is to analyze a user's query and generate a JSON plan of tool calls required to fulfill it.
                             
                 [RULES]
                 1. Analyze the Query: Carefully examine the user's query to understand their intent.
                 2. Select Tools: From the list of available tools, choose the most appropriate tool(s) to call.
-                3. Generate Arguments: For each tool call, determine the most effective arguments based on the user's query. Do NOT use the entire query as an argument unless it is the most logical. Extract the key entities.
-                4. Format Output: Your output MUST be a valid JSON array of method calls.
-                5. Empty Plan: If no tools are required to answer the query, you MUST return an empty array `[]`.
-                6. No Extra Text: Do not provide any explanation or text outside of the final JSON array.
+                3. Generate Arguments: For each tool call, determine the most effective arguments based on the user's query. Do NOT use the entire query as an argument unless it is the most logical.
+                4.  Chaining Method Calls:
+                    a. Saving a Result: To save a method's output for a later step, add a `"returnObjectKey"` field to its JSON object. The value should be a descriptive placeholder string, like `{{product_name}}` or `{{search_results}}`.
+                    b. Using a Saved Result: To use a saved result in a subsequent method, set the argument's `"value"` to the exact placeholder string you defined in a previous step (e.g., `"value": "{{product_name}}"`).
+                5. Execution Order: The list of method calls MUST be in the correct sequential order. Any method that uses a placeholder in its arguments must appear AFTER the method that defines that placeholder in its `returnObjectKey`.
+                6. Format Output: Your output MUST be a valid JSON array of method calls.
+                7. Empty Plan: If no tools are required to answer the query, you MUST return an empty array `[]`.
+                8. No Extra Text: Do not provide any explanation or text outside of the final JSON array.
                             
                 [TOOLS AVAILABLE]
                 %s
                             
                 [EXAMPLE]
-                Example tools: [
-                    {"description" : "Search the web for information","className" : "org.example.web.search.DuckDuckGo","methodName" : "search","methodArguments" : [ {"name" : "arg0","description" : "The search parameter","type" : "java.lang.String","required" : true,"fields" : { }} ],"returnType" : "java.lang.String"},
-                    {"description":"Finds products based on a structured filter.","className":"org.example.ProductService","methodName":"findProducts","methodArguments":[{"name":"arg0","description":null,"type":"org.example.ProductService$SearchFilter","required":true,"fields":{"fields":{"searchWord":{"type":"java.lang.String","required":true},"maxPrice":{"type":"java.lang.Double","required":false},"inStock":{"type":"boolean","required":true}}}}],"returnType":"java.lang.String"}
+                1. User Query: "Find me some information on the product with the id 1234ABC"
+                 Your Output: [
+                    {
+                        "className": "org.example.ProductService",
+                        "methodName": "findProductName",
+                        "methodArguments": [{"type": "java.lang.String", "value": "1234ABC"}],
+                        "returnObjectKey": "{{product_name}}"
+                    },
+                    {
+                        "className":"org.example.web.search.DuckDuckGo",
+                        "methodName":"search",
+                        "methodArguments":[{"type":"java.lang.String","value":"{{product_name}}"}],
+                        "returnObjectKey": "{{search_result}}"
+                    }
                     ]
-                1. User Query: "Can you find me some information on the new Apple M4 chip?"
-                 Your Output: [{"className":"org.example.web.search.DuckDuckGo","methodName":"search","methodArguments":[{"type":"java.lang.String","value":"Apple M4 chip specifications"}]}]
                 2. User Query: "I need to find a Nivea brand anti-perspirant for under 15 dollars. Only show me stuff that's in stock."
-                 Your Output:[{"className": "org.example.ProductService","methodName": "findProducts","methodArguments": [{"type": "org.example.ProductService$SearchFilter","value": {"searchWord": "anti-perspirant","maxPrice": "15.0","inStockOnly": "true"}}]}]
+                 Your Output:[
+                    {
+                        "className": "org.example.ProductService",
+                        "methodName": "findProducts",
+                        "methodArguments": [{"type": "org.example.ProductService$SearchFilter","value": {"searchWord": "anti-perspirant","maxPrice": "15.0","inStockOnly": "true"}}], 
+                        "returnObjectKey": "{{arg0}}"
+                    }
+                 ]
                             
                             
                 [TASK]
                 User Query: "<<<%s>>>"
-                Your Output: [%s]
-                """, aiPersonality, toolsJson, userQuery, outputFormat);
+                Your Output:
+                """, toolsJson, userQuery);
         return completePrompt;
     }
 
-    public static Response callForFinalResponse(String aiPersonality, String userQuery, List<MethodExecutionResult> executionResults) throws JsonProcessingException {
+    /**
+     *
+     * @param aiPersona example = "A product describer, that give description of products to be sold online"
+     * */
+    public static Response callForFinalResponse(String aiPersona, String userQuery, List<MethodExecutionResult> executionResults) throws JsonProcessingException {
         Dotenv dotenv = Dotenv.load(); // Loads variables from .env in the current directory
 
 
         GenerateContentResponse generateContentResponse;
 
-        String completePrompt = getPromptForFinalResult(aiPersonality, userQuery, executionResults);
+        String completePrompt = getPromptForFinalResult(aiPersona, userQuery, executionResults);
 
 
         try (Client client = Client.builder().apiKey(dotenv.get("GEMINI_API_KEY")).build()) {
