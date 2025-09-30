@@ -42,14 +42,14 @@ public class ReflectionCaller {
         System.out.println(o);*/
     }
 
-    public static Object invokeMethodFromJson(String json) throws Exception {
+    private static Object invokeMethodFromJson(String json) throws Exception {
         ObjectMapper mapper = ObjectMapperSingleton.getObjectMapper();
         ReflectionInvocableMethod request = mapper.readValue(json, ReflectionInvocableMethod.class);
 
         return invokeMethod(request);
     }
 
-    public static Object invokeMethod(ReflectionInvocableMethod request) throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    private static Object invokeMethod(ReflectionInvocableMethod request) throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         Object result = ReflectionCaller.callMethod(
                 request.getClassName(),
                 request.getMethodName(),
