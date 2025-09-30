@@ -31,8 +31,6 @@ public class MethodDescriptor {
             parameter.setType(p.getType().getName());
             parameter.setRequired(!p.isAnnotationPresent(Nullable.class));
 
-//            Optional.ofNullable(p.getAnnotation(ArgDesc.class).value()).ifPresent(parameter::setDescription);
-
             if (p.isAnnotationPresent(ArgDesc.class)){
                 parameter.setDescription(p.getAnnotation(ArgDesc.class).value());
             }
