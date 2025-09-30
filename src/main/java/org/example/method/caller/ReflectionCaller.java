@@ -16,14 +16,6 @@ import java.util.List;
 import java.util.Map;
 
 public class ReflectionCaller {
-    /*
-    * To test:
-    * String className = AnyObject.class.getName();
-    * String methodName = "anyMethodInTheClass";
-    * Class<?> clazz = Class.forName(className);
-    * java.lang.reflect.Method method = clazz.getMethod(methodName, Type.class);
-    * Object invoke = method.invoke(null, Response.class);
-    * */
 
     public static void main(String[] args) throws Exception {
         String s = Util.convertToString(ReflectionInvocableMethod.class);
@@ -51,8 +43,7 @@ public class ReflectionCaller {
     }
 
     public static Object invokeMethodFromJson(String json) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-//        Map<String, Object> map = mapper.readValue(json, Map.class);
+        ObjectMapper mapper = ObjectMapperSingleton.getObjectMapper();
         ReflectionInvocableMethod request = mapper.readValue(json, ReflectionInvocableMethod.class);
 
         return invokeMethod(request);
@@ -87,7 +78,7 @@ public class ReflectionCaller {
           ]
     *   }
     * */
-    public static Object callMethod(
+    private static Object callMethod(
             String className,
             String methodName,
             List<MethodArgument> args,
@@ -100,14 +91,6 @@ public class ReflectionCaller {
         Class<?>[] paramTypes = new Class<?>[args.size()];
         Object[] paramValues = new Object[args.size()];
 
-//        for (int i = 0; i < args.size(); i++) {
-//            String typeName = (String) args.get(i).get("type");
-//            Object value = args.get(i).get("value");
-//
-//            Class<?> paramType = getClassFromName(typeName);
-//            paramTypes[i] = paramType;
-//            paramValues[i] = convertValue(value, paramType);
-//        }
         for (int i = 0; i < args.size(); i++) {
             String typeName = args.get(i).getType();
             Object rawValue = args.get(i).getValue();
@@ -147,9 +130,7 @@ public class ReflectionCaller {
             if (req.getReturnObjectKey() != null) {
                 context.put(req.getReturnObjectKey(), result);
             }
-            System.out.println(req);
-            System.out.println(result);
-            System.out.println("_______");
+
             results.add(new MethodExecutionResult(req, result));
         }
         return results;
@@ -175,7 +156,7 @@ public class ReflectionCaller {
         }
     }
     private static Object resolvePlaceholders(Object rawValue, Map<String, Object> context) {
-        if (rawValue instanceof String && ((String) rawValue).startsWith("{{arg")) {
+        if (rawValue instanceof String && ((String) rawValue).startsWith("{{")) {
             Object resolved = context.get(rawValue);
             if (resolved == null) {
                 throw new IllegalArgumentException("Unresolved placeholder: " + rawValue);
@@ -202,22 +183,11 @@ public class ReflectionCaller {
             return value.toString();
         }
         if (value instanceof Map) { //it gets automatically converted into a map
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.setVisibility(
-                    com.fasterxml.jackson.annotation.PropertyAccessor.FIELD,
-                    com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY
-            );
-
             // Re-use Jackson to map Map -> targetType
-            return mapper.convertValue(value, targetType);
+            return ObjectMapperSingleton.getObjectMapper().convertValue(value, targetType);
         }
         return value; // let Java handle Strings, objects, etc.
     }
 
-
-    //To convert to reflection method:
-    // Annotation on the method (annotation has variable description),
-    // it checks that package for every method with that annotation
-    //
 }
 
