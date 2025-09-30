@@ -14,14 +14,11 @@ import org.example.method.caller.ReflectionInvocableMethod;
 import java.util.List;
 
 public class Gemini {
-    /**
-    *
-     * @param aiPersonality example = "A product describer, that give description of products to be sold online"
-    * */
-    public static List<ReflectionInvocableMethod> callWithToolsForPlan(String userQuery, String aiPersonality){
+
+    public static List<ReflectionInvocableMethod> callWithToolsForPlan(String userQuery){
         Dotenv dotenv = Dotenv.load(); // Loads variables from .env in the current directory
 
-        String completePrompt = getCompletePromptForPlan(userQuery, aiPersonality);
+        String completePrompt = getCompletePromptForPlan(userQuery);
 
         GenerateContentResponse generateContentResponse;
 
@@ -51,16 +48,8 @@ public class Gemini {
         return response;
     }
 
-    private static String getCompletePromptForPlan(String userQuery, String aiPersonality) {
+    private static String getCompletePromptForPlan(String userQuery) {
         String toolsJson = AiUtil.getAiToolsAsJson("org.example");
-//        String outputFormat = null;
-//        try {
-//            outputFormat = Util.convertToString(ReflectionInvocableMethod.class);
-//
-//        } catch (JsonProcessingException e) {
-//            throw new RuntimeException(e);
-//        }
-
 
         String completePrompt = String.format("""
                 [SYSTEM INSTRUCTIONS]

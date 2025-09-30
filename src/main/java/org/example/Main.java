@@ -1,7 +1,5 @@
 package org.example;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.ai.Gemini;
 import org.example.method.MethodExecutionResult;
 import org.example.method.caller.ReflectionCaller;
@@ -9,7 +7,6 @@ import org.example.method.caller.ReflectionInvocableMethod;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
@@ -28,12 +25,11 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
-        String userQuery = "Describe my top product";
-//        String userQuery = "SooPure Lait hydratant moisturising lotion";
+//        String userQuery = "Describe my top product";
+        String userQuery = "Dr. Rashel Vitamin C Brightening & Anti-Aging Face Cream";
         String aiPersona = "A product describer, that give description of products to be sold online";
         List<ReflectionInvocableMethod> invocableMethodList = Gemini.callWithToolsForPlan(
-                userQuery,
-                aiPersona
+                userQuery
         );
 
         List<MethodExecutionResult> methodExecutionResults = ReflectionCaller.executePipeline(invocableMethodList);

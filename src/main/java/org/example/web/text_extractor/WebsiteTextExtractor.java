@@ -20,26 +20,6 @@ import java.util.Objects;
 
 public class WebsiteTextExtractor {
 
-    public static class ExtractedPageSummary {
-        private final String url;
-        private final String title;
-        private final String content;
-
-        public static ExtractedPageSummary newInstance(String url, String title, String content){
-            return new ExtractedPageSummary(url, title, content);
-        }
-
-        public ExtractedPageSummary(String url, String title, String content) {
-            this.url = url;
-            this.title = title;
-            this.content = content;
-        }
-
-        public String getUrl() { return url; }
-        public String getTitle() { return title; }
-        public String getContent() { return content; }
-    }
-
     //.
     /*public static ExtractedPageSummary extractPageHtmlAndSummary(String url) throws IOException {
         // 1. Fetch HTML

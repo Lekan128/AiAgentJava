@@ -26,7 +26,7 @@ public class Util {
 //        String schema = generator.generateSchema(Response.class).toPrettyString();
         Map<String, Object> flatSchema = flattenSchema(reducedSchema);
 
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = ObjectMapperSingleton.getObjectMapper();
         String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(flatSchema);
 
         System.out.println(json);

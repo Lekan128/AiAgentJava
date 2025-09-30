@@ -100,4 +100,3 @@ public class MethodDescription {
         }
     }
 }
-//The plan is for you to create an annotation that has a required description field (that is where the method's description will be from). On start of the main method it will check for methods with the annotation. If the method has the annotation, it will convert it into the json string that can be sent to the language model as a model for the method.
