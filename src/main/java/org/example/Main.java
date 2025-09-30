@@ -32,8 +32,7 @@ public class Main {
 //        String userQuery = "SooPure Lait hydratant moisturising lotion";
         String aiPersona = "A product describer, that give description of products to be sold online";
         List<ReflectionInvocableMethod> invocableMethodList = Gemini.callWithToolsForPlan(
-                userQuery,
-                aiPersona
+                userQuery
         );
 
         List<MethodExecutionResult> methodExecutionResults = ReflectionCaller.executePipeline(invocableMethodList);

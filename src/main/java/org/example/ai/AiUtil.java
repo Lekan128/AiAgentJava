@@ -1,6 +1,7 @@
 package org.example.ai;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import org.example.ObjectMapperSingleton;
 import org.example.method.AiToolMethod;
 import org.example.method.description.MethodDescription;
 import org.example.method.description.MethodDescriptor;
@@ -31,7 +32,7 @@ public class AiUtil {
 
         String json = null;
         try {
-            json = new com.fasterxml.jackson.databind.ObjectMapper()
+            json = ObjectMapperSingleton.getObjectMapper()
                     .writerWithDefaultPrettyPrinter()
                     .writeValueAsString(methodDescriptions);
 
