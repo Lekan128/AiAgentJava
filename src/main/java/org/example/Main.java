@@ -1,5 +1,6 @@
 package org.example;
 
+import org.example.ai.Agent;
 import org.example.ai.Gemini;
 import org.example.method.MethodExecutionResult;
 import org.example.method.caller.ReflectionCaller;
@@ -26,17 +27,18 @@ public class Main {
 
     public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
 //        String userQuery = "Describe my top product";
+        Gemini gemini2 = new Gemini();
         String userQuery = "Dr. Rashel Vitamin C Brightening & Anti-Aging Face Cream";
         String aiPersona = "A product describer, that give description of products to be sold online";
-        List<ReflectionInvocableMethod> invocableMethodList = Gemini.callWithToolsForPlan(
-                userQuery
+        List<ReflectionInvocableMethod> invocableMethodList = Agent.callWithToolsForPlan(
+                userQuery, gemini2
         );
 
         List<MethodExecutionResult> methodExecutionResults = ReflectionCaller.executePipeline(invocableMethodList);
         System.out.println(ObjectMapperSingleton.getObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(methodExecutionResults));
 
 
-        Response response = Gemini.callForFinalResponse(aiPersona, userQuery, methodExecutionResults);
+        Response response = Agent.callForFinalResponse(aiPersona, userQuery, methodExecutionResults, gemini2);
 
 
         System.out.println("###############");

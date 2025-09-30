@@ -39,10 +39,10 @@ public class SimpleSummariser {
 
     public static String summarise(String s){
         if (s == null) return null;
-        int length = 800;
+        int length = 1000;
         //Todo: find a better way to summarise
 
-        if (s.length() < 800) return s;
-        return s.substring(0, 800).replace("\n", " ") + "...";
+        if (s.length() < length) return s;
+        return s.substring(0, length).replace("\n", " ") + "...";
     }
 }
