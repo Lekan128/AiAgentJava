@@ -1,6 +1,7 @@
 package org.example.ai;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.github.cdimascio.dotenv.Dotenv;
 import org.example.ObjectMapperSingleton;
 import org.example.method.AiToolMethod;
 import org.example.method.description.MethodDescription;
@@ -16,9 +17,11 @@ import java.util.List;
 import java.util.Set;
 
 public class AiUtil {
-    public static String getAiToolsAsJson(String fromPackage){
+    static String getAiToolsAsJson(){
+        Dotenv dotenv = Dotenv.load();
+        String nameOfPackageWithTools = dotenv.get("AI_TOOLS_PACKAGE");
         Reflections reflections = new Reflections(new ConfigurationBuilder()
-                .setUrls(ClasspathHelper.forPackage(fromPackage))
+                .setUrls(ClasspathHelper.forPackage(nameOfPackageWithTools))
                 .setScanners(Scanners.SubTypes, Scanners.TypesAnnotated, Scanners.MethodsAnnotated));
 
         Set<Method> methods = reflections.getMethodsAnnotatedWith(AiToolMethod.class);

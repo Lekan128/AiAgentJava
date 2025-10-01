@@ -1,50 +1,40 @@
 package org.example;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.example.ai.Agent;
 import org.example.ai.Gemini;
+import org.example.ai.LLM;
 import org.example.method.MethodExecutionResult;
 import org.example.method.caller.ReflectionCaller;
 import org.example.method.caller.ReflectionInvocableMethod;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 public class Main {
 
-    /*PLAN:
-    *
-    * Call gemini
-    * Get a plan from it to use tools
-    * Tell it what you want to do
-    * send it the reply from hitting the tools
-    *
-    *
-    * Tell gemini to do something and it should respond with only json (from a class)
-    * parse json into the class
-    * */
-
-
-    public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
-//        String userQuery = "Describe my top product";
+    public static void main(String[] args) throws JsonProcessingException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         Gemini gemini2 = new Gemini();
-        String userQuery = "Dr. Rashel Vitamin C Brightening & Anti-Aging Face Cream";
+//        String userQuery = "Dr. Rashel Vitamin C Brightening & Anti-Aging Face Cream";
+        String userQuery = "Minimie Chinchin Snack Jar";
         String aiPersona = "A product describer, that give description of products to be sold online";
+
+        Response response = useAgent(userQuery, aiPersona, gemini2, Response.class);
+        System.out.println(ObjectMapperSingleton.getObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(response));
+    }
+
+
+    public static <T> T useAgent(String userQuery, String aiPersona, LLM llm, Class<T> responseClass) throws JsonProcessingException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         List<ReflectionInvocableMethod> invocableMethodList = Agent.callWithToolsForPlan(
-                userQuery, gemini2
+                userQuery, llm
         );
 
         List<MethodExecutionResult> methodExecutionResults = ReflectionCaller.executePipeline(invocableMethodList);
         System.out.println(ObjectMapperSingleton.getObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(methodExecutionResults));
-
-
-        Response response = Agent.callForFinalResponse(aiPersona, userQuery, methodExecutionResults, gemini2);
-
-
         System.out.println("###############");
-        System.out.println(ObjectMapperSingleton.getObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(response));
-        System.out.println("###############");
-        System.out.println(ObjectMapperSingleton.getObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(methodExecutionResults));
+
+        T response = Agent.callForFinalResponse(aiPersona, userQuery, methodExecutionResults, llm, responseClass);
+        return response;
     }
 
     String listOfInvocableMethodCalls = """

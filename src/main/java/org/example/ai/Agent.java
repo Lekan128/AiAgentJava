@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.ObjectMapperSingleton;
-import org.example.Response;
 import org.example.Util;
 import org.example.method.MethodExecutionResult;
 import org.example.method.caller.ReflectionInvocableMethod;
@@ -35,7 +34,7 @@ public class Agent {
     }
 
     private static String getCompletePromptForPlan(String userQuery) {
-        String toolsJson = AiUtil.getAiToolsAsJson("org.example");
+        String toolsJson = AiUtil.getAiToolsAsJson();
 
         String completePrompt = String.format("""
                 [SYSTEM INSTRUCTIONS]
@@ -95,38 +94,38 @@ public class Agent {
      *
      * @param aiPersona example = "A product describer, that give description of products to be sold online"
      * */
-    public static Response callForFinalResponse(String aiPersona, String userQuery, List<MethodExecutionResult> executionResults, LLM llm) throws JsonProcessingException {
-        String completePrompt = getPromptForFinalResult(aiPersona, userQuery, executionResults);
+    public static <T> T callForFinalResponse(String aiPersona, String userQuery, List<MethodExecutionResult> executionResults, LLM llm, Class<T> responseType) throws JsonProcessingException {
+        String completePrompt = getPromptForFinalResult(aiPersona, userQuery, executionResults, responseType);
 
 
         String generateContentResponse = llm.call(completePrompt);
 
-        Response response;
+        T response;
 
         ObjectMapper objectMapper = ObjectMapperSingleton.getObjectMapper();
         try {
-            response = objectMapper.readValue(generateContentResponse.replace("```json", "").replace("```", ""), Response.class);
+            response = objectMapper.readValue(generateContentResponse.replace("```json", "").replace("```", ""), responseType);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Unable to convert " + llm.getModelName() + " generateContentResponse to POJO\n"+e);
+            throw new RuntimeException("Unable to convert " + llm.getModelName() + " generateContentResponse to POJO\n"+e + '\n' + generateContentResponse);
         }
         return response;
     }
 
-    private static String getPromptForFinalResult(String aiPersonality, String userQuery, List<MethodExecutionResult> executionResults) throws JsonProcessingException {
+    private static <T> String getPromptForFinalResult(String aiPersonality, String userQuery, List<MethodExecutionResult> executionResults, Class<T> responseType) throws JsonProcessingException {
         String toolResultsJson = new ObjectMapper().writeValueAsString(executionResults); // The JSON from your list of ToolExecutionResult
-        String finalOutputFormat = Util.convertToString(Response.class); // e.g., {"productName": "...", "description": "..."}
+        String finalOutputFormat = Util.convertToString(responseType); // e.g., {"productName": "...", "description": "..."}
         String chatHistoryJson = "";
 
         String synthesisPrompt = String.format("""
                 [SYSTEM_INSTRUCTIONS]
-                You are a %s.
+                You are %s.
                 Your purpose is to synthesize a final answer by analyzing the user's query, the conversation history, and the results from any tools that were called.
                 
                 [RULES]
                 1. Primary Goal: Your main goal is to answer the user's latest query in the `[TASK]` section.
                 2. Use All Context: Use the `[CHAT_HISTORY]` to understand the flow of the conversation and the `[TOOL_RESULTS]` for factual data.
                 3. Synthesize: The tool results may represent a sequence of steps. Analyse the entire chain to understand the data flow. Focus on and combine the most relevant tool responses to construct your answer.
-                4. Handle Missing Info: If the `[CHAT_HISTORY]` or `[TOOL_RESULTS]` are empty, unhelpful, or don't contain enough information, state that you were unable to find the details in the appropriate fields of the `[FINAL_OUTPUT_FORMAT]`, and make the other fields empty. Do not invent information.
+                4. Handle Missing Info: If the `[CHAT_HISTORY]` or `[TOOL_RESULTS]` are empty, unhelpful, or don't contain enough information, use the JSON value `null` for non-string fields (like numbers, booleans, objects) of the `[FINAL_OUTPUT_FORMAT]`. For string fields, state that you were unable to find the details. Do not invent information.
                 5. Strictly Adhere to Format: Your final output MUST be a single, valid JSON object that conforms to the `[FINAL_OUTPUT_FORMAT]`. Provide no other text.
                                 
                 [CHAT_HISTORY]
@@ -151,6 +150,7 @@ public class Agent {
                 Your Output: {
                     "productName" : "Samsung galaxy s25 Ultra",
                     "description" : "The Samsung Galaxy S25 Ultra features a tough titanium frame, Gorilla® Armor 2 display glass for enhanced durability, an IP68 rating for water and dust resistance, and integrated Galaxy AI features.",
+                    "price": 203399.99,
                     "toolsUsed" : [ "getCurrentUserId", "getUsersTopProductName", "search" ]
                 }
                 
@@ -162,7 +162,7 @@ public class Agent {
                 // Example 3: A single-step query with unhelpful results
                 User Query: "SoPure Cream"
                 Tool Results: [{"request":{"className":"org.example.ProductService","methodName":"findProduct","methodArguments":[{"type":"java.lang.String","value":"Mona Lisa"}],"returnObjectKey" : "{{product_details}}"},"response":{"name":"Mona Lisa","price":"1200", "type": "replica"}}]
-                Your Output:{"productName":"Unable to find the details.","description":"Unable to find the details.", "toolsUsed" : [ ]}
+                Your Output:{"productName":"SoPure Cream","description":"Unable to find the details.","price":null,"toolsUsed" : [ ]}
                  
                 [TASK]
                 User Query: "<<<%s>>>"
