@@ -16,11 +16,17 @@ public class Main {
     public static void main(String[] args) throws JsonProcessingException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         Gemini gemini2 = new Gemini();
 //        String userQuery = "Dr. Rashel Vitamin C Brightening & Anti-Aging Face Cream";
-        String userQuery = "Minimie Chinchin Snack Jar";
-        String aiPersona = "A product describer, that give description of products to be sold online";
+//        String userQuery = "Mobil 1 oil";
+//        String aiPersona = "A product describer, that give description of products to be sold online";
 
-        Response response = useAgent(userQuery, aiPersona, gemini2, Response.class);
+        String userQuery = "I need startups that can hire me as a software engineer with experience using java.";
+        String aiPersona = "An expert job finder. You help people from other countries look for remote jobs in USA, UK and UAE.";
+
+        Startups response = useAgent(userQuery, aiPersona, gemini2, Startups.class);
+        System.out.println("##########£££££££££££££££££££££££££££");
         System.out.println(ObjectMapperSingleton.getObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(response));
+
+
     }
 
 

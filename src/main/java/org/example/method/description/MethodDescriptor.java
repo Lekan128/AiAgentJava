@@ -1,9 +1,9 @@
 package org.example.method.description;
 
 
+import jakarta.annotation.Nullable;
 import org.example.method.AiToolMethod;
 
-import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
