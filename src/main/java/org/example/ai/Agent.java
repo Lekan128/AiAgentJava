@@ -12,7 +12,7 @@ import java.util.List;
 
 public class Agent {
 
-    public static List<ReflectionInvocableMethod> callWithToolsForPlan(String userQuery, LLM llm){
+    public static List<ReflectionInvocableMethod> callWithToolsForPlan(String userQuery, LLM llm) throws JsonProcessingException {
         String completePrompt = getCompletePromptForPlan(userQuery);
 
 
@@ -33,8 +33,10 @@ public class Agent {
         return response;
     }
 
-    private static String getCompletePromptForPlan(String userQuery) {
+    private static String getCompletePromptForPlan(String userQuery) throws JsonProcessingException {
         String toolsJson = AiUtil.getAiToolsAsJson();
+        String outputFormat = Util.convertToString(ReflectionInvocableMethod.class);
+
 
         String completePrompt = String.format("""
                 [SYSTEM INSTRUCTIONS]
@@ -51,7 +53,7 @@ public class Agent {
                 5. Execution Order: The list of method calls MUST be in the correct sequential order. Any method that uses a placeholder in its arguments must appear AFTER the method that defines that placeholder in its `returnObjectKey`.
                 6. Format Output: Your output MUST be a valid JSON array of method calls.
                 7. Empty Plan: If no tools are required to answer the query, you MUST return an empty array `[]`.
-                8. No Extra Text: Do not provide any explanation or text outside of the final JSON array.
+                8. No Extra Text: Do not provide any explanation, field or text outside of the `Output Format` JSON array.
                             
                 [TOOLS AVAILABLE]
                 %s
@@ -85,8 +87,9 @@ public class Agent {
                             
                 [TASK]
                 User Query: "<<<%s>>>"
+                Output Format: [%s]
                 Your Output:
-                """, toolsJson, userQuery);
+                """, toolsJson, userQuery, outputFormat);
         return completePrompt;
     }
 
@@ -112,7 +115,7 @@ public class Agent {
     }
 
     private static <T> String getPromptForFinalResult(String aiPersonality, String userQuery, List<MethodExecutionResult> executionResults, Class<T> responseType) throws JsonProcessingException {
-        String toolResultsJson = new ObjectMapper().writeValueAsString(executionResults); // The JSON from your list of ToolExecutionResult
+        String toolResultsJson = ObjectMapperSingleton.getObjectMapper().writeValueAsString(executionResults); // The JSON from your list of ToolExecutionResult
         String finalOutputFormat = Util.convertToString(responseType); // e.g., {"productName": "...", "description": "..."}
         String chatHistoryJson = "";
 
@@ -125,8 +128,8 @@ public class Agent {
                 1. Primary Goal: Your main goal is to answer the user's latest query in the `[TASK]` section.
                 2. Use All Context: Use the `[CHAT_HISTORY]` to understand the flow of the conversation and the `[TOOL_RESULTS]` for factual data.
                 3. Synthesize: The tool results may represent a sequence of steps. Analyse the entire chain to understand the data flow. Focus on and combine the most relevant tool responses to construct your answer.
-                4. Handle Missing Info: If the `[CHAT_HISTORY]` or `[TOOL_RESULTS]` are empty, unhelpful, or don't contain enough information, use the JSON value `null` for non-string fields (like numbers, booleans, objects) of the `[FINAL_OUTPUT_FORMAT]`. For string fields, state that you were unable to find the details. Do not invent information.
-                5. Strictly Adhere to Format: Your final output MUST be a single, valid JSON object that conforms to the `[FINAL_OUTPUT_FORMAT]`. Provide no other text.
+                4. Handle Missing Info: If the `[CHAT_HISTORY]` or `[TOOL_RESULTS]` are empty, unhelpful, or don't contain enough information, use the JSON value `null` for non-string fields (like numbers, booleans, objects) of the `Final Output Format`. For string fields, state that you were unable to find the details. Do not invent information.
+                5. Strictly Adhere to Format: Your final output MUST be a single, valid JSON object that conforms to the `Final Output Format`. Provide no other text.
                                 
                 [CHAT_HISTORY]
                 %s
